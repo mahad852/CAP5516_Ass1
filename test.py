@@ -51,7 +51,7 @@ def visualize_cam_on_original_image(
 
 
 def get_model(args):
-    return ResNet18(num_classes=2, load_pretrained_weights=args.use_pretrained)
+    return ResNet18(num_classes=2, load_pretrained_weights=False)
 
 def get_transforms():
     return transforms.Compose([
@@ -140,7 +140,7 @@ def main():
 
         loss = criterion(outputs, labels)
 
-        avg_loss += loss.detach().item()
+        avg_loss += loss.detach().item() * imgs.shape[0]
         total_elems += imgs.shape[0]
 
         probs = outputs.detach().softmax(dim=1)
@@ -151,9 +151,10 @@ def main():
 
         for img, label, pred, img_path in zip(imgs, labels, preds, img_paths):
             img = img.unsqueeze(0)
-            label = label.cpu()
+            label = int(label.cpu().item())
+            pred = int(pred.item())
 
-            targets = [ClassifierOutputTarget(1)]
+            targets = [ClassifierOutputTarget(pred)]
             with torch.enable_grad():
                 grayscale_cam = gcam(input_tensor=img, targets=targets)
                 grayscale_cam = grayscale_cam[0]  # [H, W], numpy

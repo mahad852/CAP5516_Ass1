@@ -113,7 +113,7 @@ def train_for_one_epoch(model: nn.Module, train_loader: DataLoader, optimizer: o
         loss.backward()
         optimizer.step()
 
-        avg_loss += loss.detach().item()
+        avg_loss += loss.detach().item() * imgs.shape[0]
         total_elems += imgs.shape[0]
 
         num_correct += (outputs.detach().softmax(dim=1).argmax(dim=1) == labels).sum().cpu().item()
@@ -145,7 +145,7 @@ def evaluate(model: nn.Module, loader: DataLoader, device: torch.device):
 
         loss = criterion(outputs, labels)
 
-        avg_loss += loss.detach().item()
+        avg_loss += (loss.detach().item() * imgs.shape[0])
         total_elems += imgs.shape[0]
 
         probs = outputs.detach().softmax(dim=1)
@@ -165,7 +165,7 @@ def evaluate(model: nn.Module, loader: DataLoader, device: torch.device):
     
     avg_loss /= total_elems
     
-    return {"loss": avg_loss, "f1": f1, "acc": accuracy, "prec": prec, "rec": rec, "f1": f1}
+    return {"loss": avg_loss, "f1": f1, "acc": accuracy, "prec": prec, "rec": rec}
 
 
 def main():
@@ -198,7 +198,7 @@ def main():
         loss, train_acc = train_for_one_epoch(model=model, train_loader=train_loader, optimizer=optimizer, device=device)
         print(f"Epoch [{epoch + 1}/{args.epochs}]")
         print(f"Train loss: {loss:.4f} | Train Acc: {train_acc:.4f}")
-        val_metrics = evaluate(model=model, loader=test_loader, device=device)
+        val_metrics = evaluate(model=model, loader=val_loader, device=device)
 
         print(f"Val Loss: {val_metrics['loss']:.4f} | Val Acc: {val_metrics['acc']:.4f} "
               f"F1-score: {val_metrics['f1']:.4f} | Prec: {val_metrics['prec']:.4f} | Recall: {val_metrics['rec']:.4f}")        
@@ -210,13 +210,13 @@ def main():
             torch.save(model.state_dict(), best_model_path)
             best_val_loss = val_metrics["loss"]
     
-
+    model.load_state_dict(torch.load(best_model_path, map_location=device))
     test_metrics = evaluate(model=model, loader=test_loader, device=device)
     log_obj["test_metrics"] = test_metrics
 
     print("---" * 10)
-    print(f"Test Loss: {val_metrics['loss']:.4f} | Test Acc: {val_metrics['acc']:.4f} "
-              f"F1-score: {val_metrics['f1']:.4f} | Prec: {val_metrics['prec']:.4f} | Recall: {val_metrics['rec']:.4f}")    
+    print(f"Test Loss: {test_metrics['loss']:.4f} | Test Acc: {test_metrics['acc']:.4f} "
+              f"F1-score: {test_metrics['f1']:.4f} | Prec: {test_metrics['prec']:.4f} | Recall: {test_metrics['rec']:.4f}")    
     with open(os.path.join(log_dir, "training_logs.json"), "w") as f:
         json.dump(log_obj, f)
 
@@ -229,9 +229,9 @@ def main():
     val_accs = list(map(lambda o: o["acc"], log_obj["val_metrics"]))
     val_f1s = list(map(lambda o: o["f1"], log_obj["val_metrics"]))
 
-    plot_graph(xs=[epochs, epochs], ys=[train_losses, val_losses], title="Loss vs. # Epochs", x_label="Epochs", y_label="Loss", legend_labels=["Train", "Test"], path=os.path.join(log_dir, "loss.png"))
-    plot_graph(xs=[epochs, epochs], ys=[train_accs, val_accs], title="Accuracy vs. # Epochs", x_label="Epochs", y_label="Accuracy", legend_labels=["Train", "Test"], path=os.path.join(log_dir, "accuracy.png"))
-    plot_graph(xs=[epochs], ys=[val_f1s], title="F1-score vs. # Epochs", x_label="Epochs", y_label="F1 Score", legend_labels=["Test F1-score"], path=os.path.join(log_dir, "f11.png"))
+    plot_graph(xs=[epochs, epochs], ys=[train_losses, val_losses], title="Loss vs. # Epochs", x_label="Epochs", y_label="Loss", legend_labels=["Train", "Val"], path=os.path.join(log_dir, "loss.png"))
+    plot_graph(xs=[epochs, epochs], ys=[train_accs, val_accs], title="Accuracy vs. # Epochs", x_label="Epochs", y_label="Accuracy", legend_labels=["Train", "Val"], path=os.path.join(log_dir, "accuracy.png"))
+    plot_graph(xs=[epochs], ys=[val_f1s], title="F1-score vs. # Epochs", x_label="Epochs", y_label="F1 Score", legend_labels=["Val F1-score"], path=os.path.join(log_dir, "f1.png"))
 
 
 
