@@ -12,6 +12,7 @@ from sklearn.metrics import f1_score, precision_score, recall_score, roc_auc_sco
 from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
+from torchvision import transforms
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -41,8 +42,20 @@ def plot_graph(xs, ys, title, path, x_label, y_label, legend_labels):
 def get_model(args):
     return ResNet18(num_classes=2, load_pretrained_weights=args.use_pretrained)
 
-def get_transforms():
-    return ResNet18_Weights.IMAGENET1K_V1.transforms()
+def get_train_transforms():
+    return transforms.Compose([
+        transforms.Resize(size=(224, 224)),
+        transforms.RandomHorizontalFlip(), transforms.RandomRotation(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+    ])
+
+def get_test_transforms():
+    return transforms.Compose([
+        transforms.Resize(size=(224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+    ])
 
 def get_device():
     if torch.cuda.is_available():
@@ -66,11 +79,12 @@ def get_dataloaders(args):
     if not os.path.exists(test_path):
         raise ValueError(f"Dataset train path: {test_path} does not exist")
     
-    trnsfrms = get_transforms()
+    train_trnsfrms = get_train_transforms()
+    test_trnsfrms = get_test_transforms()
     
-    train_ds = ChestXrayDataset(root=train_path, x_transform=trnsfrms)
-    val_ds = ChestXrayDataset(root=val_path, x_transform=trnsfrms)
-    test_ds = ChestXrayDataset(root=test_path, x_transform=trnsfrms)
+    train_ds = ChestXrayDataset(root=train_path, x_transform=train_trnsfrms)
+    val_ds = ChestXrayDataset(root=val_path, x_transform=test_trnsfrms)
+    test_ds = ChestXrayDataset(root=test_path, x_transform=test_trnsfrms)
 
     train_loader = DataLoader(dataset=train_ds, batch_size=args.batch_size, shuffle=True, num_workers=1)
     val_loader = DataLoader(dataset=val_ds, batch_size=args.batch_size, shuffle=False, num_workers=1)

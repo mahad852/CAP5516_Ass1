@@ -17,6 +17,7 @@ import cv2
 from matplotlib import colormaps
 from PIL import Image
 import matplotlib.pyplot as plt
+from torchvision import transforms
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -53,7 +54,11 @@ def get_model(args):
     return ResNet18(num_classes=2, load_pretrained_weights=args.use_pretrained)
 
 def get_transforms():
-    return ResNet18_Weights.IMAGENET1K_V1.transforms()
+    return transforms.Compose([
+        transforms.Resize(size=(224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+    ])
 
 def get_device():
     if torch.cuda.is_available():
