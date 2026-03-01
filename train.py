@@ -45,7 +45,7 @@ def get_model(args):
 def get_train_transforms():
     return transforms.Compose([
         transforms.Resize(size=(224, 224)),
-        transforms.RandomHorizontalFlip(), transforms.RandomRotation(),
+        transforms.RandomHorizontalFlip(), transforms.RandomRotation(degrees=10), transforms.ColorJitter(brightness=0.1, contrast=0.1),
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
     ])
