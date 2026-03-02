@@ -18,6 +18,7 @@ from matplotlib import colormaps
 from PIL import Image
 import matplotlib.pyplot as plt
 from torchvision import transforms
+from sklearn.metrics import confusion_matrix
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -25,6 +26,7 @@ def get_args():
     parser.add_argument("--model_path", type=str, required=True)
     parser.add_argument("--batch_size", default=32, type=int)
     parser.add_argument("--log_dir", default="logs/")
+    parser.add_argument("--save_cams", action="store_true")
     args = parser.parse_args()
 
     return args
@@ -149,6 +151,9 @@ def main():
 
         preds = probs.argmax(dim=1).cpu()
 
+        if not args.save_cams:
+            continue
+
         for img, label, pred, img_path in zip(imgs, labels, preds, img_paths):
             img = img.unsqueeze(0)
             label = int(label.cpu().item())
@@ -186,11 +191,19 @@ def main():
     accuracy = accuracy_score(y_true=all_labels_np, y_pred=all_preds_np)
     prec = precision_score(y_true=all_labels_np, y_pred=all_preds_np)
     rec = recall_score(y_true=all_labels_np, y_pred=all_preds_np)
-    
+
+    cm = confusion_matrix(all_labels_np, all_preds_np)
+    tn, fp, fn, tp = cm.ravel()
+
+    normal_acc = tn / (tn + fp)
+    pneumonia_acc = tp / (tp + fn)
+        
     avg_loss /= total_elems
 
     print(f"Test Loss: {avg_loss:.4f} | Test Acc: {accuracy:.4f} "
               f"F1-score: {f1:.4f} | Prec: {prec:.4f} | Recall: {rec:.4f}")    
+    
+    print(f"Normal samples: accuracy: {normal_acc:.4f}; Pneuomonia accuracy: {pneumonia_acc:.4f}")
 
 
 if __name__ == "__main__":
