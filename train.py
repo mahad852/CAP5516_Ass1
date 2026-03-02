@@ -209,6 +209,8 @@ def main():
 
     best_val_loss = val_metrics_0["loss"]
 
+    print(f"Epoch: 0 | Train Loss: {train_metrics_0["loss"]:.4f}; Val Loss: {val_metrics_0['loss']:.4f}")
+
     for epoch in tqdm(range(args.epochs), desc="Running epochs"):
         loss, train_acc = train_for_one_epoch(model=model, train_loader=train_loader, optimizer=optimizer, device=device)
         print(f"Epoch [{epoch + 1}/{args.epochs}]")
