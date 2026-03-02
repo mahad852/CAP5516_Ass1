@@ -87,7 +87,7 @@ def get_dataloaders(args):
     )
 
     train_subset = Subset(full_train_aug, train_idx)
-    
+
     val_subset_from_train_plain = Subset(full_train_plain, val_idx)
     provided_val_ds = ChestXrayDataset(val_path, x_transform=get_test_transforms())
     val_ds = ConcatDataset([provided_val_ds, val_subset_from_train_plain])
@@ -187,6 +187,9 @@ def main():
     model = get_model(args)
     model = model.to(device=device)
 
+    train_metrics_0 = evaluate(model, train_loader, device)
+    val_metrics_0 = evaluate(model, val_loader, device)
+
     log_dir = args.log_dir
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -200,7 +203,11 @@ def main():
         "val_metrics": []
     }
 
-    best_val_loss = np.inf
+    log_obj["train_loss"].append(train_metrics_0["loss"])
+    log_obj["train_accs"].append(train_metrics_0["acc"])
+    log_obj["val_metrics"].append(val_metrics_0)
+
+    best_val_loss = val_metrics_0["loss"]
 
     for epoch in tqdm(range(args.epochs), desc="Running epochs"):
         loss, train_acc = train_for_one_epoch(model=model, train_loader=train_loader, optimizer=optimizer, device=device)
@@ -231,7 +238,7 @@ def main():
     train_losses = log_obj["train_loss"]
     val_losses = list(map(lambda o: o["loss"], log_obj["val_metrics"]))
 
-    epochs = np.arange(args.epochs) + 1
+    epochs = np.arange(args.epochs + 1)
 
     train_accs = log_obj["train_accs"]
     val_accs = list(map(lambda o: o["acc"], log_obj["val_metrics"]))
