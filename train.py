@@ -13,6 +13,8 @@ from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 from torchvision import transforms
+from torch.utils.data import ConcatDataset, Subset
+from sklearn.model_selection import train_test_split
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -67,28 +69,34 @@ def get_device():
 
 def get_dataloaders(args):
     train_path = os.path.join(args.root, "train")
-    val_path = os.path.join(args.root, "val")
-    test_path = os.path.join(args.root, "test")
+    val_path   = os.path.join(args.root, "val")
+    test_path  = os.path.join(args.root, "test")
 
-    if not os.path.exists(train_path):
-        raise ValueError(f"Dataset train path: {train_path} does not exist")
-    
-    if not os.path.exists(val_path):
-        raise ValueError(f"Dataset train path: {val_path} does not exist")
-    
-    if not os.path.exists(test_path):
-        raise ValueError(f"Dataset train path: {test_path} does not exist")
-    
-    train_trnsfrms = get_train_transforms()
-    test_trnsfrms = get_test_transforms()
-    
-    train_ds = ChestXrayDataset(root=train_path, x_transform=train_trnsfrms)
-    val_ds = ChestXrayDataset(root=val_path, x_transform=test_trnsfrms)
-    test_ds = ChestXrayDataset(root=test_path, x_transform=test_trnsfrms)
+    full_train_aug   = ChestXrayDataset(train_path, x_transform=get_train_transforms())
+    full_train_plain = ChestXrayDataset(train_path, x_transform=get_test_transforms())
 
-    train_loader = DataLoader(dataset=train_ds, batch_size=args.batch_size, shuffle=True, num_workers=1)
-    val_loader = DataLoader(dataset=val_ds, batch_size=args.batch_size, shuffle=False, num_workers=1)
-    test_loader = DataLoader(dataset=test_ds, batch_size=args.batch_size, shuffle=False, num_workers=1)
+    labels = np.array([full_train_aug[i][1] for i in range(len(full_train_aug))])
+
+    indices = np.arange(len(full_train_aug))
+
+    train_idx, val_idx = train_test_split(
+        indices,
+        test_size=0.2,
+        stratify=labels,
+        random_state=42
+    )
+
+    train_subset = Subset(full_train_aug, train_idx)
+    
+    val_subset_from_train_plain = Subset(full_train_plain, val_idx)
+    provided_val_ds = ChestXrayDataset(val_path, x_transform=get_test_transforms())
+    val_ds = ConcatDataset([provided_val_ds, val_subset_from_train_plain])
+
+    test_ds = ChestXrayDataset(test_path, x_transform=get_test_transforms())
+
+    train_loader = DataLoader(train_subset, batch_size=args.batch_size, shuffle=True, num_workers=1)
+    val_loader   = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=1)
+    test_loader  = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False, num_workers=1)
 
     return train_loader, val_loader, test_loader
 
