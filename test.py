@@ -129,7 +129,7 @@ def main():
     
     model.eval()
 
-    for (imgs, labels, img_paths) in test_loader:
+    for (imgs, labels, img_paths) in tqdm(test_loader, desc="Eval on test partition"):
         imgs: torch.Tensor
         labels: torch.Tensor
 
