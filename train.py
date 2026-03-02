@@ -72,29 +72,12 @@ def get_dataloaders(args):
     val_path   = os.path.join(args.root, "val")
     test_path  = os.path.join(args.root, "test")
 
-    full_train_aug   = ChestXrayDataset(train_path, x_transform=get_train_transforms())
-    full_train_plain = ChestXrayDataset(train_path, x_transform=get_test_transforms())
-
-    labels = np.array([full_train_aug[i][1] for i in range(len(full_train_aug))])
-
-    indices = np.arange(len(full_train_aug))
-
-    train_idx, val_idx = train_test_split(
-        indices,
-        test_size=0.2,
-        stratify=labels,
-        random_state=42
-    )
-
-    train_subset = Subset(full_train_aug, train_idx)
-
-    val_subset_from_train_plain = Subset(full_train_plain, val_idx)
-    provided_val_ds = ChestXrayDataset(val_path, x_transform=get_test_transforms())
-    val_ds = ConcatDataset([provided_val_ds, val_subset_from_train_plain])
+    train_ds   = ChestXrayDataset(train_path, x_transform=get_train_transforms())
+    val_ds = ChestXrayDataset(val_path, x_transform=get_test_transforms())
 
     test_ds = ChestXrayDataset(test_path, x_transform=get_test_transforms())
 
-    train_loader = DataLoader(train_subset, batch_size=args.batch_size, shuffle=True, num_workers=1)
+    train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True, num_workers=1)
     val_loader   = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False, num_workers=1)
     test_loader  = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False, num_workers=1)
 
