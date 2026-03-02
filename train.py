@@ -21,8 +21,8 @@ def get_args():
     parser.add_argument("--root", type=str, required=True, help="where chest xray data is stored")
     parser.add_argument("--log_dir", type=str, default="logs/")
     parser.add_argument("--batch_size", default=32, type=int)
-    parser.add_argument("--lr", default=0.001, type=float)
-    parser.add_argument("--epochs", default=50, type=int)
+    parser.add_argument("--lr", default=0.0001, type=float)
+    parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--use_pretrained", action="store_true")
 
     args = parser.parse_args()
